@@ -6,35 +6,44 @@ on:
 jobs:
   trivy-scan:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        service: [frontend, backend]
-
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      # Build image from Dockerfile
-      - name: Build ${{ matrix.service }} image
-        run: |
-          docker build -t myorg/${{ matrix.service }}:latest ./${{ matrix.service }}
-
-      # Install Trivy
+      # Install Trivy once
       - name: Install Trivy
         uses: aquasecurity/trivy-action@master
         with:
           version: latest
 
-      # Scan image and save results as SARIF
-      - name: Run Trivy scan for ${{ matrix.service }}
+      # --- Frontend ---
+      - name: Build frontend image
+        run: docker build -t myorg/frontend:latest ./frontend
+
+      - name: Run Trivy scan for frontend
         run: |
           trivy image \
             --format sarif \
-            --output trivy-${{ matrix.service }}.sarif \
-            myorg/${{ matrix.service }}:latest || true
+            --output trivy-frontend.sarif \
+            myorg/frontend:latest || true
 
-      # Upload SARIF to GitHub Security Tab
-      - name: Upload Trivy SARIF for ${{ matrix.service }}
+      - name: Upload frontend SARIF
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: trivy-${{ matrix.service }}.sarif
+          sarif_file: trivy-frontend.sarif
+
+      # --- Backend ---
+      - name: Build backend image
+        run: docker build -t myorg/backend:latest ./backend
+
+      - name: Run Trivy scan for backend
+        run: |
+          trivy image \
+            --format sarif \
+            --output trivy-backend.sarif \
+            myorg/backend:latest || true
+
+      - name: Upload backend SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-backend.sarif
