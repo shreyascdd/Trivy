@@ -1,0 +1,40 @@
+name: Trivy Scan for Frontend and Backend
+
+on:
+  workflow_dispatch:
+
+jobs:
+  trivy-scan:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [frontend, backend]
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      # Build image from Dockerfile
+      - name: Build ${{ matrix.service }} image
+        run: |
+          docker build -t myorg/${{ matrix.service }}:latest ./${{ matrix.service }}
+
+      # Install Trivy
+      - name: Install Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          version: latest
+
+      # Scan image and save results as SARIF
+      - name: Run Trivy scan for ${{ matrix.service }}
+        run: |
+          trivy image \
+            --format sarif \
+            --output trivy-${{ matrix.service }}.sarif \
+            myorg/${{ matrix.service }}:latest || true
+
+      # Upload SARIF to GitHub Security Tab
+      - name: Upload Trivy SARIF for ${{ matrix.service }}
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-${{ matrix.service }}.sarif
