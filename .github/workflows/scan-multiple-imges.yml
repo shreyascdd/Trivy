@@ -3,6 +3,9 @@ name: Trivy Scan for Frontend and Backend
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   trivy-scan:
     runs-on: ubuntu-latest
